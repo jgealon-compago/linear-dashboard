@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import { LinearClient } from '@linear/sdk';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const app = express();
 const PORT = 3001;
@@ -10,7 +14,16 @@ app.use(cors());
 app.use(express.json());
 
 // Get Linear API key from environment
-const LINEAR_API_KEY = process.env.LINEAR_API_KEY || 'your-linear-api-key';
+const LINEAR_API_KEY = process.env.LINEAR_API_KEY;
+
+if (!LINEAR_API_KEY) {
+  console.error('❌ LINEAR_API_KEY not found in environment variables');
+  console.error('Please create a .env file with: LINEAR_API_KEY=your_key_here');
+  process.exit(1);
+}
+
+console.log('✅ Linear API key loaded');
+
 const linear = new LinearClient({ apiKey: LINEAR_API_KEY });
 
 // API endpoint to fetch Linear tasks
