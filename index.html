@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linear Dashboard - Live Data</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen">
+  <div id="app"></div>
+
+  <script type="module">
+    import { LinearClient } from 'https://cdn.skypack.dev/@linear/sdk';
+
+    const API_KEY = 'YOUR_LINEAR_API_KEY_HERE'; // ⚠️ REPLACE THIS WITH YOUR ACTUAL LINEAR API KEY
+    const linear = new LinearClient({ apiKey: API_KEY });
+
+    let allIssues = [];
+    let filteredIssues = [];
+    let searchTerm = '';
+    let statusFilter = 'all';
+    let priorityFilter = 'all';
+
+    async function fetchIssues() {
+      try {
+        const loading = document.getElementById('loading');
+        if (loading) loading.classList.remove('hidden');
+        
+        const issues = await linear.issues({ first: 100 });
+        allIssues = await Promise.all(issues.nodes.map(async (issue) => {
+          const state = await issue.state;
+          const assignee = await issue.assignee;
+          const team = await issue.team;
+          
+          return {
+            id: issue.id,
+            identifier: issue.identifier,
+            title: issue.title,
+            description: issue.description || 'No description',
+            priority: issue.priority || 0,
+            status: state?.name || 'Unknown',
+            createdAt: issue.createdAt,
+            updatedAt: issue.updatedAt,
+            url: issue.url,
+            assignee: assignee?.name || null,
+            team: team?.key || 'Unknown'
+          };
+        }));
+        
+        filteredIssues = allIssues;
+        if (loading) loading.classList.add('hidden');
+        render();
+      } catch (error) {
+        console.error('Error fetching issues:', error);
+        const errorEl = document.getElementById('error');
+        if (errorEl) {
+          errorEl.classList.remove('hidden');
+          errorEl.textContent = 'Error: ' + error.message + ' - Check your API key!';
+        }
+        const loading = document.getElementById('loading');
+        if (loading) loading.classList.add('hidden');
+      }
+    }
+
+    function filterIssues() {
+      filteredIssues = allIssues;
+
+      if (searchTerm) {
+        filteredIssues = filteredIssues.filter(issue =>
+          issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          issue.identifier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          issue.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      if (statusFilter !== 'all') {
+        filteredIssues = filteredIssues.filter(issue => issue.status === statusFilter);
+      }
+
+      if (priorityFilter !== 'all') {
+        filteredIssues = filteredIssues.filter(issue => issue.priority === parseInt(priorityFilter));
+      }
+
+      render();
+    }
+
+    function getPriorityLabel(priority) {
+      const labels = { 0: 'None', 1: 'Urgent', 2: 'High', 3: 'Normal', 4: 'Low' };
+      return labels[priority] || 'None';
+    }
+
+    function getPriorityColor(priority) {
+      const colors = {
+        0: 'bg-gray-100 text-gray-700',
+        1: 'bg-red-100 text-red-700',
+        2: 'bg-orange-100 text-orange-700',
+        3: 'bg-blue-100 text-blue-700',
+        4: 'bg-green-100 text-green-700'
+      };
+      return colors[priority] || 'bg-gray-100 text-gray-700';
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        'Todo': 'bg-gray-100 text-gray-700',
+        'In Progress': 'bg-blue-100 text-blue-700',
+        'Done': 'bg-green-100 text-green-700',
+        'Backlog': 'bg-purple-100 text-purple-700',
+        'Canceled': 'bg-red-100 text-red-700'
+      };
+      return colors[status] || 'bg-gray-100 text-gray-700';
+    }
+
+    function render() {
+      const stats = {
+        total: allIssues.length,
+        todo: allIssues.filter(i => i.status === 'Todo').length,
+        inProgress: allIssues.filter(i => i.status === 'In Progress').length,
+        done: allIssues.filter(i => i.status === 'Done').length
+      };
+
+      const statuses = [...new Set(allIssues.map(i => i.status))];
+      const now = new Date().toLocaleTimeString();
+
+      document.getElementById('app').innerHTML = `
+        <div class="bg-slate-800/50 border-b border-slate-700 backdrop-blur-sm sticky top-0 z-10">
+          <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h1 class="text-3xl font-bold text-white mb-2">Linear Dashboard</h1>
+                <p class="text-slate-400">🟢 Live Data • Updated ${now}</p>
+              </div>
+              <div class="flex gap-3">
+                <div class="bg-slate-700/50 rounded-lg px-4 py-2 text-center">
+                  <div class="text-2xl font-bold text-white">${stats.total}</div>
+                  <div class="text-xs text-slate-400">Total</div>
+                </div>
+                <div class="bg-blue-900/30 rounded-lg px-4 py-2 text-center border border-blue-700/30">
+                  <div class="text-2xl font-bold text-blue-300">${stats.inProgress}</div>
+                  <div class="text-xs text-blue-400">In Progress</div>
+                </div>
+                <div class="bg-slate-700/30 rounded-lg px-4 py-2 text-center border border-slate-600/30">
+                  <div class="text-2xl font-bold text-slate-300">${stats.todo}</div>
+                  <div class="text-xs text-slate-400">Todo</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 flex-wrap">
+              <div class="flex-1 min-w-[300px]">
+                <input
+                  type="text"
+                  id="searchInput"
+                  placeholder="Search issues..."
+                  class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value="${searchTerm}"
+                />
+              </div>
+              <select id="statusFilter" class="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="all">All Status</option>
+                ${statuses.map(s => `<option value="${s}" ${statusFilter === s ? 'selected' : ''}>${s}</option>`).join('')}
+              </select>
+              <select id="priorityFilter" class="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="all">All Priority</option>
+                <option value="1" ${priorityFilter === '1' ? 'selected' : ''}>Urgent</option>
+                <option value="2" ${priorityFilter === '2' ? 'selected' : ''}>High</option>
+                <option value="3" ${priorityFilter === '3' ? 'selected' : ''}>Normal</option>
+                <option value="4" ${priorityFilter === '4' ? 'selected' : ''}>Low</option>
+                <option value="0" ${priorityFilter === '0' ? 'selected' : ''}>None</option>
+              </select>
+              <button onclick="location.reload()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 py-8">
+          ${filteredIssues.length === 0 ? `
+            <div class="text-center py-20">
+              <p class="text-slate-400 text-lg">No issues found matching your filters</p>
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${filteredIssues.map(issue => `
+                <a
+                  href="${issue.url}"
+                  target="_blank"
+                  class="group bg-slate-800/50 border border-slate-700 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-200 hover:-translate-y-1"
+                >
+                  <div class="flex items-start justify-between mb-3">
+                    <span class="text-slate-400 text-sm font-mono">${issue.identifier}</span>
+                    <span class="px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(issue.status)}">
+                      ${issue.status}
+                    </span>
+                  </div>
+
+                  <h3 class="text-white font-semibold text-lg mb-2 group-hover:text-blue-400 transition-colors">
+                    ${issue.title}
+                  </h3>
+
+                  <p class="text-slate-400 text-sm mb-4 line-clamp-3">
+                    ${issue.description.substring(0, 150)}${issue.description.length > 150 ? '...' : ''}
+                  </p>
+
+                  <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                    <span class="px-2 py-1 rounded-md text-xs font-medium ${getPriorityColor(issue.priority)}">
+                      ${getPriorityLabel(issue.priority)}
+                    </span>
+                    <span class="text-slate-500 text-xs">
+                      ${new Date(issue.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  ${issue.assignee ? `
+                    <div class="mt-2 text-slate-400 text-xs">
+                      👤 ${issue.assignee}
+                    </div>
+                  ` : ''}
+                </a>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 py-6 text-center text-slate-500 text-sm">
+          <p>Showing ${filteredIssues.length} of ${allIssues.length} issues</p>
+        </div>
+      `;
+
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          searchTerm = e.target.value;
+          filterIssues();
+        });
+      }
+
+      const statusSelect = document.getElementById('statusFilter');
+      if (statusSelect) {
+        statusSelect.addEventListener('change', (e) => {
+          statusFilter = e.target.value;
+          filterIssues();
+        });
+      }
+
+      const prioritySelect = document.getElementById('priorityFilter');
+      if (prioritySelect) {
+        prioritySelect.addEventListener('change', (e) => {
+          priorityFilter = e.target.value;
+          filterIssues();
+        });
+      }
+    }
+
+    // Show initial loading state
+    document.getElementById('app').innerHTML = `
+      <div id="loading" class="fixed inset-0 bg-slate-900 flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p class="text-white text-lg">Loading your Linear issues...</p>
+          <p class="text-slate-400 text-sm mt-2">This may take a few seconds</p>
+        </div>
+      </div>
+      <div id="error" class="hidden fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-md"></div>
+    `;
+
+    fetchIssues();
+  </script>
+</body>
+</html>
