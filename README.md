@@ -1,95 +1,104 @@
 # Command Center Dashboard
 
-Modern command center dashboard showing Linear tasks, Google Calendar events, and Gmail messages.
+Modern command center showing Linear tasks, calendar events, and emails.
 
-## Features
-
-- ✅ Live Linear tasks (assigned to you)
-- ✅ Upcoming calendar events
-- ✅ Unread emails
-- ✅ Light/Dark mode toggle
-- ✅ 2-column layout (65% tasks / 35% calendar+email)
-- ✅ Auto-refresh capability
-
-## Deploy to Vercel
+## 🚀 Quick Deploy to Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/jgealon-compago/linear-dashboard)
 
-### 1. Click "Deploy" button above
+### One-Click Deploy
 
-### 2. Add Environment Variables
+1. Click the "Deploy" button above
+2. Sign in to Vercel with GitHub
+3. Add your environment variables:
+   - `LINEAR_API_KEY` - Your Linear API key
+4. Click "Deploy"
 
-In Vercel dashboard, add these environment variables:
+Done! Your dashboard will be live in 2 minutes.
 
-```
-LINEAR_API_KEY=lin_api_your_key_here
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret  
-GOOGLE_REFRESH_TOKEN=your_google_refresh_token
-```
+---
 
-### 3. Get Your API Keys
-
-**Linear API Key:**
-1. Go to https://linear.app/settings/api
-2. Create new Personal API key
-3. Copy the key (starts with `lin_api_`)
-
-**Google OAuth (for Calendar + Gmail):**
-1. Go to https://console.cloud.google.com
-2. Create new project or select existing
-3. Enable Google Calendar API and Gmail API
-4. Create OAuth 2.0 credentials
-5. Get your Client ID, Client Secret, and Refresh Token
-
-### 4. Deploy!
-
-Vercel will automatically build and deploy your dashboard.
-
-## Local Development
+## 📦 Manual Deploy
 
 ```bash
-# Install dependencies
+# Clone the repo
+git clone https://github.com/jgealon-compago/linear-dashboard.git
+cd linear-dashboard
+
+# Install Vercel CLI
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Deploy
+vercel
+```
+
+Follow the prompts, then add your `LINEAR_API_KEY` in the Vercel dashboard.
+
+---
+
+## 🔑 Environment Variables
+
+Add these in Vercel dashboard → Settings → Environment Variables:
+
+| Variable | Value | Required |
+|----------|-------|----------|
+| `LINEAR_API_KEY` | `lin_api_xxx` | ✅ Yes |
+| `GOOGLE_CLIENT_ID` | Your Google OAuth ID | ⏸️ Later |
+| `GOOGLE_CLIENT_SECRET` | Your Google OAuth Secret | ⏸️ Later |
+
+---
+
+## 🏗️ Project Structure
+
+```
+linear-dashboard/
+├── app/
+│   ├── api/
+│   │   └── tasks/route.ts     # Linear API endpoint
+│   ├── page.tsx               # Dashboard UI
+│   ├── layout.tsx
+│   └── globals.css
+├── package.json
+└── next.config.js
+```
+
+---
+
+## 🌐 After Deployment
+
+Your dashboard will be available at:
+`https://linear-dashboard-xxx.vercel.app`
+
+You can:
+- ✅ Access from any device
+- ✅ Share the URL (it's private - requires your API key)
+- ✅ Auto-deploys when you push to GitHub
+- ✅ Free hosting on Vercel
+
+---
+
+## 🛠️ Local Development
+
+```bash
 npm install
-
-# Copy .env.example to .env.local and add your keys
-cp .env.example .env.local
-
-# Run development server
 npm run dev
 ```
 
 Open http://localhost:3000
 
-## Tech Stack
+---
 
-- Next.js 14
-- TypeScript
-- Tailwind CSS
-- Linear SDK
-- Google APIs
+## 📱 Features
 
-## Project Structure
-
-```
-├── app/
-│   ├── api/
-│   │   ├── tasks/route.ts       # Linear API endpoint
-│   │   ├── calendar/route.ts    # Google Calendar endpoint  
-│   │   └── email/route.ts       # Gmail endpoint
-│   ├── page.tsx                 # Main dashboard page
-│   ├── layout.tsx               # Root layout
-│   └── globals.css              # Global styles
-├── package.json
-└── next.config.js
-```
-
-## API Endpoints
-
-- `GET /api/tasks?assignee=email@example.com` - Fetch Linear tasks
-- `GET /api/calendar` - Fetch upcoming calendar events
-- `GET /api/email` - Fetch unread emails
+- Live Linear tasks
+- 2-column layout (65% tasks / 35% calendar+email)
+- Light/Dark mode toggle
+- Auto-refresh capability
+- Click tasks to open in Linear
 
 ---
 
-Built with ❤️ for personal productivity
+Built with Next.js 14, TypeScript, Tailwind CSS
